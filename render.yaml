@@ -1,0 +1,56 @@
+services:
+  - type: web
+    name: chatwoot-web
+    env: ruby
+    plan: free
+    buildCommand: |
+      bundle install
+      yarn install --frozen-lockfile
+      bundle exec rails assets:precompile
+      bundle exec rails db:prepare
+    startCommand: bundle exec rails s -p 3000 -b 0.0.0.0
+    envVars:
+      - key: RAILS_ENV
+        value: production
+      - key: NODE_ENV
+        value: production
+      - key: INSTALLATION_ENV
+        value: render
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chatwoot-db
+          property: connectionString
+      - key: REDIS_URL
+        value: redis://default:<your_redis_password>@<redis_host>:6379
+      - key: SECRET_KEY_BASE
+        generateValue: true
+
+  - type: worker
+    name: chatwoot-worker
+    env: ruby
+    plan: free
+    buildCommand: |
+      bundle install
+      yarn install --frozen-lockfile
+      bundle exec rails assets:precompile
+      bundle exec rails db:prepare
+    startCommand: bundle exec sidekiq -C config/sidekiq.yml
+    envVars:
+      - key: RAILS_ENV
+        value: production
+      - key: NODE_ENV
+        value: production
+      - key: INSTALLATION_ENV
+        value: render
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chatwoot-db
+          property: connectionString
+      - key: REDIS_URL
+        value: redis://default:<your_redis_password>@<redis_host>:6379
+      - key: SECRET_KEY_BASE
+        sync: false  # Must match value from web
+
+databases:
+  - name: chatwoot-db
+    plan: free
